@@ -1,0 +1,314 @@
+﻿<Window x:Class="AssetDatabaseManager.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:AssetDatabaseManager.Converters"
+        xmlns:controls="clr-namespace:AssetDatabaseManager.WindowElements"
+        Title="Game Asset Database Manager" 
+        Height="800" Width="1200"
+        MinHeight="600" MinWidth="900"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <!-- Style for the toolbar buttons -->
+        <Style x:Key="ToolbarButtonStyle" TargetType="Button">
+            <Setter Property="Margin" Value="5,2"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="MinWidth" Value="80"/>
+        </Style>
+
+        <!-- Style for section headers -->
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Foreground" Value="DarkBlue"/>
+        </Style>
+
+        <local:PathToImageConverter x:Key="PathToImageConverter"/>
+    </Window.Resources>
+
+    <DockPanel>
+        <!-- Top Toolbar -->
+        <ToolBar DockPanel.Dock="Top" Height="40">
+            <Button Name="btnAddAssets" Content="Add Assets" Style="{StaticResource ToolbarButtonStyle}" Click="btnAddAssets_Click"/>
+            <Button Name="btnImportFolder" Content="Import Folder" Style="{StaticResource ToolbarButtonStyle}" Click="btnImportFolder_Click"/>
+            <Separator/>
+
+            <Label Content="Search:" VerticalAlignment="Center"/>
+            <TextBox Name="txtSearch" Width="200" Margin="5,2" VerticalAlignment="Center" TextChanged="txtSearch_TextChanged" KeyDown="txtSearch_KeyDown"/>
+            <Button Name="btnClearSearch" Content="Clear" Style="{StaticResource ToolbarButtonStyle}" Click="btnClearSearch_Click"/>
+        </ToolBar>
+
+        <!-- Bottom Status Bar -->
+        <StatusBar DockPanel.Dock="Bottom" Height="25">
+            <StatusBarItem>
+                <TextBlock Name="txtStatus" Text="Ready"/>
+            </StatusBarItem>
+            <StatusBarItem>
+                <ProgressBar x:Name="assetLoadingBar" Height="10" Width="200" Visibility="Hidden"/>
+            </StatusBarItem>
+            <StatusBarItem>
+                <TextBlock Name="assetLoadingText" Text=""/>
+            </StatusBarItem>
+            <StatusBarItem HorizontalAlignment="Right">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Name="txtAssetCount" Text="0 assets"/>
+                    <TextBlock Text=" | " Margin="5,0"/>
+                    <TextBlock Name="txtSelectedCount" Text="0 selected"/>
+                </StackPanel>
+            </StatusBarItem>
+        </StatusBar>
+
+        <!-- Main Content Area -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="250" MinWidth="200"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="*" MinWidth="300"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="300" MinWidth="250"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Panel - Categories -->
+            <Border Grid.Column="0" BorderBrush="Gray" BorderThickness="1" Margin="5">
+                <DockPanel>
+                    <DockPanel Margin="0,0,0,8" DockPanel.Dock="Top">
+                        <!-- Right-aligned toggle buttons -->
+                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                            <ToggleButton x:Name="BtnAnd" Content="AND" Width="50" Height="20" Click="BtnAnd_Click"/>
+                            <ToggleButton x:Name="BtnOr" Content="OR" Width="50" IsChecked="True" Height="20" Margin="0,0,4,0" Click="BtnOr_Click"/>
+                        </StackPanel>
+
+                        <!-- Left-aligned section header -->
+                        <TextBlock Text="Tags"
+               Style="{StaticResource SectionHeaderStyle}"
+               VerticalAlignment="Center" />
+                    </DockPanel>
+
+                    <controls:TagTogglePanel x:Name="ttpSelector" DockPanel.Dock="Top" Height="Auto" MinHeight="100" />
+
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="5">
+                        <Button Name="btnNewTag" Content="New" Width="60" Margin="2" Click="btnNewTag_Click"/>
+                        <Button Name="btnEditTag" Content="Edit" Width="60" Margin="2" Click="btnEditTag_Click"/>
+                        <Button Name="btnDeleteTag" Content="Delete" Width="60" Margin="2" Click="btnDeleteTag_Click"/>
+                    </StackPanel>
+
+                    <TextBlock DockPanel.Dock="Top" Text="Categories" Style="{StaticResource SectionHeaderStyle}"/>
+
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="5">
+                        <Button Name="btnNewCategory" Content="New" Width="60" Margin="2" Click="btnNewCategory_Click"/>
+                        <Button Name="btnRenameCategory" Content="Rename" Width="60" Margin="2" Click="btnRenameCategory_Click"/>
+                        <Button Name="btnDeleteCategory" Content="Delete" Width="60" Margin="2" Click="btnDeleteCategory_Click"/>
+                    </StackPanel>
+
+                    <TreeView Name="tvCategories" Margin="5" SelectedItemChanged="tvCategories_SelectedItemChanged" MouseLeftButtonUp="tvCategories_MouseLeftButtonUp" ContextMenuOpening="tvCategories_ContextMenuOpening">
+                        <TreeView.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Name="menuNewCategory" Header="New Category" Click="menuNewCategory_Click"/>
+                                <MenuItem Name="menuRenameCategory" Header="Rename" Click="menuRenameCategory_Click"/>
+                                <MenuItem Name="menuDeleteCategory" Header="Delete" Click="menuDeleteCategory_Click"/>
+                            </ContextMenu>
+                        </TreeView.ContextMenu>
+                    </TreeView>
+                </DockPanel>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="LightGray"/>
+
+            <!-- Center Panel - Asset List -->
+            <Border Grid.Column="2" BorderBrush="Gray" BorderThickness="1" Margin="5">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top">
+                        <TextBlock DockPanel.Dock="Left" Text="Assets" Style="{StaticResource SectionHeaderStyle}"/>
+
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="5">
+                            <Button Name="btnGridView" Content="Grid" Width="50" Margin="2" Click="btnGridView_Click"/>
+                            <Button Name="btnListView" Content="List" Width="50" Margin="2" Click="btnListView_Click"/>
+                        </StackPanel>
+
+                        <Border/>
+                    </DockPanel>
+
+                    <!-- Asset DataGrid -->
+                    <DataGrid Name="dgAssets" 
+                              Margin="5"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              SelectionMode="Extended"
+                              GridLinesVisibility="Horizontal"
+                              HeadersVisibility="Column"
+                              RowHeight="40" IsReadOnly="True" SelectionChanged="dgAssets_SelectionChanged" MouseDoubleClick="dgAssets_MouseDoubleClick">
+
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="Preview" Width="60">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Image Width="32" Height="32" 
+                                               Source="{Binding ThumbnailPath, Converter={StaticResource PathToImageConverter}}" 
+                                               Stretch="Uniform"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="Name" 
+                                                Binding="{Binding Name}" 
+                                                Width="*" 
+                                                MinWidth="150"/>
+
+                            <DataGridTextColumn Header="Type" 
+                                                Binding="{Binding AssetType}" 
+                                                Width="80"/>
+
+                            <DataGridTextColumn Header="Size" 
+                                                Binding="{Binding FileSizeFormatted}" 
+                                                SortMemberPath="FileSize"
+                                                Width="80"/>
+
+                            <DataGridTextColumn Header="Date Added" 
+                                                Binding="{Binding DateAdded, StringFormat='{}{0:dd/MM/yyyy}'}" 
+                                                Width="100"/>
+                        </DataGrid.Columns>
+
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Name="menuOpenAsset" Header="Open" Click="menuOpenAsset_Click"/>
+                                <MenuItem Name="menuShowInExplorer" Header="Show in Explorer" Click="menuShowInExplorer_Click"/>
+                                <Separator/>
+                                <MenuItem Name="menuDeleteAsset" Header="Delete" Click="menuDeleteAsset_Click"/>
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
+                    </DataGrid>
+
+                    <ListView Name="lvGridAssets" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                         SelectionMode="Extended"
+                         Visibility="Collapsed" SelectionChanged="lvGridAssets_SelectionChanged" MouseDoubleClick="lvGridAssets_MouseDoubleClick">
+
+                        <ListView.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ListView.ItemsPanel>
+
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="White" 
+                                   BorderBrush="#DDD" 
+                                   BorderThickness="1" 
+                                   Margin="5" 
+                                   Padding="10"
+                                   Width="80">
+                                    <StackPanel>
+                                        <!-- Thumbnail -->
+                                        <Border Width="60" Height="60" 
+                                           BorderThickness="1">
+                                            <Image Source="{Binding ThumbnailPath}" 
+                                              Stretch="Uniform"
+                                              RenderOptions.BitmapScalingMode="HighQuality"/>
+                                        </Border>
+
+                                        <!-- Asset Name -->
+                                        <TextBlock Text="{Binding Name}" 
+                                              Margin="0,5,0,0" 
+                                              TextAlignment="Center"
+                                              TextWrapping="Wrap"
+                                              MaxHeight="30"/>
+
+                                        <!-- Asset Type -->
+                                        <TextBlock Text="{Binding AssetType}" 
+                                              FontSize="10" 
+                                              Foreground="#666" 
+                                              TextAlignment="Center"
+                                              Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+
+                        <ListView.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Name="menuOpenAssetGrid" Header="Open" Click="menuOpenAssetGrid_Click"/>
+                                <MenuItem Name="menuShowInExplorerGrid" Header="Show in Explorer" Click="menuShowInExplorerGrid_Click"/>
+                                <Separator/>
+                                <MenuItem Name="menuDeleteAssetGrid" Header="Delete" Click="menuDeleteAssetGrid_Click"/>
+                            </ContextMenu>
+                        </ListView.ContextMenu>
+                    </ListView>
+
+                </DockPanel>
+            </Border>
+
+            <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="LightGray"/>
+
+            <!-- Right Panel - Asset Details -->
+            <Border Grid.Column="4" BorderBrush="Gray" BorderThickness="1" Margin="5">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="10">
+                        <TextBlock Text="Asset Details" Style="{StaticResource SectionHeaderStyle}"/>
+
+                        <!-- Preview Image -->
+                        <Border BorderBrush="Gray" BorderThickness="1" Height="150" Margin="0,5">
+                            <Image Name="imgPreview"/>
+                        </Border>
+
+                        <!-- Asset Information -->
+                        <StackPanel Margin="0,10,0,0">
+                            <Label Content="Name:" FontWeight="Bold"/>
+                            <TextBox Name="txtAssetName" Margin="0,0,0,5" IsEnabled="False"/>
+
+                            <Label Content="Description:" FontWeight="Bold"/>
+                            <TextBox Name="txtAssetDescription" 
+                                     Height="60" 
+                                     TextWrapping="Wrap" 
+                                     AcceptsReturn="True" 
+                                     VerticalScrollBarVisibility="Auto"
+                                     Margin="0,0,0,5" IsEnabled="False"/>
+
+                            <Label Content="Category:" FontWeight="Bold"/>
+                            <ComboBox Name="cmbAssetCategory" Margin="0,0,0,5" IsEnabled="False"/>
+
+                            <Label Content="File Path:" FontWeight="Bold"/>
+                            <TextBox Name="txtFilePath" IsReadOnly="True" Background="LightGray" Margin="0,0,0,5"/>
+
+                            <Label Content="File Size:" FontWeight="Bold"/>
+                            <TextBox Name="txtFileSize" IsReadOnly="True" Background="LightGray" Margin="0,0,0,5"/>
+
+                            <Label Content="Date Created:" FontWeight="Bold"/>
+                            <TextBox Name="txtDateCreated" IsReadOnly="True" Background="LightGray" Margin="0,0,0,5"/>
+
+                            <Label Content="Date Modified:" FontWeight="Bold"/>
+                            <TextBox Name="txtDateModified" IsReadOnly="True" Background="LightGray" Margin="0,0,0,10"/>
+                        </StackPanel>
+
+                        <!-- Tags Section -->
+                        <StackPanel>
+                            <Label Content="Tags:" FontWeight="Bold"/>
+                            <WrapPanel Name="pnlTags" Margin="0,0,0,5">
+                            </WrapPanel>
+
+                            <controls:TagTogglePanel x:Name="ttpAssetTags" DockPanel.Dock="Top" Height="Auto" MinHeight="30" />
+                        </StackPanel>
+
+                        <!-- Action Buttons -->
+                        <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
+                            <Button Name="btnSaveChanges" Content="Save Changes" 
+                                    Width="100" Margin="0,0,10,0" 
+                                    Background="LightBlue" Click="btnSaveChanges_Click" IsEnabled="False"/>
+                            <Button Name="btnDeleteAsset" Content="Remove Asset" 
+                                    Width="100" 
+                                    Background="LightCoral" Click="btnDeleteAsset_Click" IsEnabled="False"/>
+                        </StackPanel>
+
+                        <!-- Quick Actions -->
+                        <StackPanel Margin="0,10,0,0">
+                            <Label Content="Quick Actions:" FontWeight="Bold"/>
+                            <Button Name="btnOpenFile" Content="Open File" Margin="0,2" Click="btnOpenFile_Click" IsEnabled="False"/>
+                            <Button Name="btnShowInExplorer" Content="Show in Explorer" Margin="0,2" Click="btnShowInExplorer_Click" IsEnabled="False"/>
+                            <Button Name="btnCopyPath" Content="Copy File Path" Margin="0,2" Click="btnCopyPath_Click" IsEnabled="False"/>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>

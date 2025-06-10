@@ -1,0 +1,19 @@
+﻿<Window x:Class="AssetDatabaseManager.InputWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Awaiting Input" 
+        WindowStartupLocation="CenterOwner"
+        SizeToContent="WidthAndHeight"
+        ResizeMode="NoResize">
+    <StackPanel Margin="10">
+        <TextBlock Text="Enter value:" Margin="0,0,0,5"/>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBox Name="InputTextBox" MinWidth="200" KeyDown="InputTextBox_KeyDown"/>
+            <Button Name="ColorPickerButton"  Content="Color" MinWidth="40" Margin="5,0,0,0" Background="White" Visibility="Collapsed" Click="ColorPickerButton_Click"/>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="OK" Width="60" Margin="0,0,5,0" Click="Ok_Click"/>
+            <Button Content="Cancel" Width="60" Click="Cancel_Click"/>
+        </StackPanel>
+    </StackPanel>
+</Window>
